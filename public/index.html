@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy Premium</title>
+    <style>
+        .btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <button class="btn" id="buyPremium">Buy Premium</button>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        const buyPremiumButton = document.getElementById("buyPremium");
+
+        buyPremiumButton.addEventListener("click", async () => {
+            try {
+                // Create an order on the server
+                const orderResponse = await fetch("http://localhost:3000/create-order", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ amount: 1, currency: "INR" }), // INR 5.00
+                });
+
+                const order = await orderResponse.json();
+
+                // Razorpay Payment Options
+                const options = {
+                    key: "rzp_test_O8eFprYjeNYF7l",  //YOUR_RAZORPAY_KEY_ID
+                    amount: order.amount,
+                    currency: order.currency,
+                    name: "Premium Membership",
+                    description: "Upgrade to premium features",
+                    order_id: order.id,
+                    handler: async function (response) {
+                        const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = response;
+
+                        // Save payment info to the server
+                        const saveResponse = await fetch("http://localhost:3000/save-payment", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                orderId: razorpay_order_id,
+                                paymentId: razorpay_payment_id,
+                                signature: razorpay_signature,
+                            }),
+                        });
+
+                        const saveResult = await saveResponse.json();
+                        alert(saveResult.message);
+                    },
+                    prefill: {
+                        name: "Amit Kumar",
+                        email: "akr009020@gmail.com",
+                        contact: "7037300542",
+                    },
+                    theme: { color: "#007bff" },
+                };
+
+                const rzp = new Razorpay(options);
+                rzp.open();
+            } catch (error) {
+                console.error(error);
+                alert("Payment failed!");
+            }
+        });
+    </script>
+</body>
+</html>
